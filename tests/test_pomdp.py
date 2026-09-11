@@ -61,6 +61,29 @@ def test_update_belief_rejects_impossible_observation():
         pomdp.update_belief(pomdp.initial_belief(), 0, 1)
 
 
+@pytest.mark.parametrize(
+    "bad_field,bad_value",
+    [
+        ("transition", np.zeros((2, 1, 2))),
+        ("observation", np.zeros((2, 2, 1))),
+        ("reward", np.zeros((1, 2))),
+    ],
+)
+def test_rejects_mismatched_array_shapes(bad_field, bad_value):
+    kwargs = {
+        "states": ["healthy", "disease"],
+        "actions": ["wait", "screen"],
+        "observations": ["negative", "positive"],
+        "transition": np.zeros((2, 2, 2)),
+        "observation": np.zeros((2, 2, 2)),
+        "reward": np.zeros((2, 2)),
+    }
+    kwargs[bad_field] = bad_value
+
+    with pytest.raises(ValueError):
+        POMDP(**kwargs)
+
+
 def test_expected_reward():
     pomdp = make_two_state_pomdp()
     belief = np.array([0.7, 0.3])
