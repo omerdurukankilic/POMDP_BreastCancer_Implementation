@@ -132,3 +132,29 @@ Tests come first, same pattern as the existing `test_pomdp.py`:
   A comment earns its place only when it explains something the code
   can't say for itself, e.g. why a hazard number was chosen, or why a
   pruning step is needed.
+- When a comment does reference the math, use the notation Appendix A
+  already defines, not a paraphrase. A reader flipping between the code
+  and the proposal should see the same symbols in both places.
+
+### Appendix A notation reference
+
+| Symbol | Meaning |
+|---|---|
+| `S`, `s` | state set, a state |
+| `A`, `a` | action set, an action |
+| `Ω`, `o` | observation set, an observation |
+| `T(s' \| s)` | transition probability (action-independent) |
+| `Z(o \| s', a)` | observation probability |
+| `R(s, a)` | reward |
+| `γ` | discount factor |
+| `N` | number of follow-up periods remaining |
+| `b` | belief, `b ∈ Δ(S)` |
+| `b^{a,o}` | belief after taking `a` and observing `o` |
+| `η` | normalizer in the belief update |
+| `V_n(b)` | value function at `n` periods remaining |
+| `π_n(b)` | policy (action prescribed) at `n` periods remaining |
+
+E.g. the solver's per-stage candidate-vector step is a direct
+implementation of equation (2)/(6), so its docstring should say so in
+those terms (`V_n`, `b^{a,o}`, `η`) rather than re-explaining the idea
+from scratch in prose.
