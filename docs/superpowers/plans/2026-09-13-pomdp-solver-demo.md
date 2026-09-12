@@ -6,7 +6,9 @@
 
 **Architecture:** An exact finite-horizon POMDP solver (backward induction over alpha-vectors, LP-pruned) sits on top of the existing `POMDP` dataclass. A parameters module builds two fully-specified `POMDP` instances (low-risk, high-risk) from the proposal's verified detection numbers plus illustrative hazard/reward values. A demo script solves both, prints the comparison the proposal's prose describes, and bakes the solved result into a static HTML sandbox — no server, no build step, no in-browser Python.
 
-**Tech Stack:** Python (numpy, scipy.optimize.linprog — both already dependencies), pytest, plain HTML/CSS/JS for the sandbox.
+**Tech Stack:** Python (numpy, scipy.optimize.linprog — both already dependencies), pytest, plain HTML/CSS/JS for the sandbox. Dependencies are managed with `uv`, not pip.
+
+**Setup:** `uv sync` installs the project and its dev dependencies (reading `pyproject.toml`, no manual venv activation needed). Every command in this plan that runs Python or pytest should be run through `uv run` (e.g. `uv run pytest tests/test_solver.py -v`, `uv run python scripts/run_demo.py`) — this plan writes bare `pytest`/`python` in each step for brevity, but prefix each with `uv run` when actually executing.
 
 Reference: see the design spec at `docs/superpowers/specs/2026-09-13-pomdp-solver-demo-design.md` and Appendix A of `proposal/proposal.tex` for the math notation used throughout (`T(s'|s)`, `Z(o|s',a)`, `R(s,a)`, `γ`, `b`, `b^{a,o}`, `η`, `V_n`, `π_n`).
 
@@ -1047,12 +1049,60 @@ git commit -m "feat: build interactive sandbox UI with auto/manual observation t
 
 ---
 
-### Task 10: Update the README
+### Task 10: Switch to uv and update the README
 
 **Files:**
+- Modify: `.pre-commit-config.yaml`
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the Status and add a Demo section**
+- [ ] **Step 1: Make the pytest pre-commit hook use uv**
+
+In `.pre-commit-config.yaml`, change:
+
+```yaml
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+```
+
+to:
+
+```yaml
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+```
+
+This is why commits earlier in this project needed a manually-activated
+venv for the hook to find `pytest` — routing it through `uv run` fixes
+that for good, with no other setup needed.
+
+- [ ] **Step 2: Replace the pip-based Getting started section with uv**
+
+Replace the existing `## Getting started` section (currently
+`python -m venv .venv` / `source .venv/bin/activate` / `pip install -e ".[dev]"`)
+with:
+
+```markdown
+## Getting started
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency
+management — no manual virtualenv activation or pip needed.
+
+```bash
+uv sync
+```
+
+Run the test suite:
+
+```bash
+uv run pytest
+```
+```
+
+- [ ] **Step 3: Update the Status and add a Demo section**
 
 Replace the `## Status` section and add a new section after `## Getting started`:
 
@@ -1062,7 +1112,7 @@ Replace the `## Status` section and add a new section after `## Getting started`
 Solve both risk strata and print the comparison:
 
 ```bash
-python scripts/run_demo.py
+uv run python scripts/run_demo.py
 ```
 
 This also regenerates `sandbox/index.html`, a self-contained interactive
@@ -1079,11 +1129,11 @@ scope for now (real PREDICT integration, more than two strata, robust-POMDP
 methods).
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add README.md
-git commit -m "docs: document the demo script and sandbox in the README"
+git add .pre-commit-config.yaml README.md
+git commit -m "chore: switch to uv for dependency management, document the demo"
 ```
 
 ---
