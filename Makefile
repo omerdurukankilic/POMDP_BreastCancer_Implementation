@@ -1,17 +1,17 @@
 .PHONY: install test test-watch lint coverage
 
 install:
-	pip install -e ".[dev]"
-	pre-commit install
+	uv sync --extra dev
+	uv run pre-commit install
 
 test:
-	pytest
+	uv run pytest
 
 test-watch:
-	ptw --now --clear
+	uv run ptw --now --clear
 
 lint:
-	ruff check src tests
+	uv run ruff check src tests
 
 coverage:
-	pytest --cov=pomdp_breast_cancer --cov-report=term-missing
+	uv run pytest --cov=pomdp_breast_cancer --cov-report=term-missing

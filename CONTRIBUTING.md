@@ -20,7 +20,7 @@ bug fixes: reproduce the bug as a failing test before fixing it.
 ## Running things
 
 ```bash
-make install      # editable install + dev deps + pre-commit hook
+make install      # uv sync + dev deps + pre-commit hook
 make test         # run the suite once
 make test-watch   # rerun affected tests on save
 make lint         # ruff
