@@ -15,18 +15,21 @@ STATES = ["disease_free", "loco_regional", "distant", "death_other"]
 ACTIONS = ["defer", "standard", "intensive"]
 OBSERVATIONS = ["negative", "positive"]
 
-# midpoints of Table 1's reported ranges
+# Table 1's numbers: midpoints where a range was reported (intensive sens.
+# 64-67%, standard sens. ~50-55%), single reported values otherwise.
 DEFER_SENS, DEFER_SPEC = 0.25, 0.99
 STANDARD_SENS, STANDARD_SPEC = 0.525, 0.94
 INTENSIVE_SENS, INTENSIVE_SPEC = 0.655, 0.91
 
 
 def _detection_row(sensitivity: float, specificity: float) -> np.ndarray:
-    # disease_free and death_other have no recurrence to find, so a
-    # "negative" reading there is governed by specificity; loco_regional
-    # and distant do have recurrence present, so it's governed by
-    # sensitivity. death_other is death from an unrelated cause, so it's
-    # grouped with disease_free rather than getting its own number.
+    # Row order must match STATES: disease_free, loco_regional, distant,
+    # death_other. disease_free and death_other have no recurrence to find,
+    # so a "negative" reading there is governed by specificity;
+    # loco_regional and distant do have recurrence present, so it's
+    # governed by sensitivity. death_other is death from an unrelated
+    # cause, so it's grouped with disease_free rather than getting its own
+    # number.
     return np.array(
         [
             [specificity, 1 - specificity],
