@@ -62,10 +62,17 @@ def test_high_risk_progresses_faster_than_low_risk():
     high = build_pomdp("high")
     disease_free = STATES.index("disease_free")
     loco_regional = STATES.index("loco_regional")
+    distant = STATES.index("distant")
 
     assert (
         high.transition[0, disease_free, loco_regional]
         > low.transition[0, disease_free, loco_regional]
+    )
+    assert (
+        high.transition[0, disease_free, distant] > low.transition[0, disease_free, distant]
+    )
+    assert (
+        high.transition[0, loco_regional, distant] > low.transition[0, loco_regional, distant]
     )
 
 

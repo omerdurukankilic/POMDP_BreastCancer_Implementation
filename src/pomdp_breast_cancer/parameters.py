@@ -71,7 +71,12 @@ def _transition_matrix(
 ) -> np.ndarray:
     """Build T(s'|s), the same for every action, given a risk stratum's hazards."""
     t = np.zeros((len(STATES), len(STATES)))
-    disease_free, loco_regional, distant, death_other = range(len(STATES))
+    # Index by name, not position, so this stays correct if STATES is reordered
+    # (matches the STATES.index(...) lookup build_reward_matrix uses below).
+    disease_free = STATES.index("disease_free")
+    loco_regional = STATES.index("loco_regional")
+    distant = STATES.index("distant")
+    death_other = STATES.index("death_other")
 
     t[disease_free, disease_free] = 1 - to_loco_regional - to_distant - BACKGROUND_DEATH_RATE
     t[disease_free, loco_regional] = to_loco_regional
@@ -87,12 +92,24 @@ def _transition_matrix(
 
     # death_other is absorbing.
     t[death_other, death_other] = 1.0
+
+    # A diagonal entry is 1 minus the sum of that row's hazards, so the row
+    # summing to 1 doesn't by itself prove every entry is a valid probability
+    # (hazards summing past 1 would drive the diagonal negative while the row
+    # sum stayed exactly 1). Guard against that directly.
+    assert (t >= 0).all(), "transition matrix has a negative entry — hazards sum to more than 1"
     return t
 
 
 def build_reward_matrix() -> np.ndarray:
-    """Build R(s, a): a state's quality minus the chosen action's cost."""
+    """Build R(s, a): a state's quality minus the chosen action's cost.
+
+    STATE_QUALITY is broadcast across actions (rows) and ACTION_COST across
+    states (columns), giving the (n_actions, n_states) shape POMDP expects.
+    """
     reward = STATE_QUALITY[np.newaxis, :] - ACTION_COST[:, np.newaxis]
+    # Death carries no ongoing quality-of-life or cost — zero it explicitly
+    # rather than let it inherit STATE_QUALITY's placeholder 0.0 by accident.
     reward[:, STATES.index("death_other")] = 0.0
     return reward
 
