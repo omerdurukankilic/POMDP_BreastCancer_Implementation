@@ -37,7 +37,7 @@ POMDP_BreastCancer_Implementation/
 ├── tests/                     # unit tests
 ├── .github/workflows/         # CI configuration
 ├── pyproject.toml             # package metadata and dependencies
-└── requirements.txt           # pinned runtime dependencies
+└── uv.lock                    # pinned dependency versions
 ```
 
 ## Getting started
