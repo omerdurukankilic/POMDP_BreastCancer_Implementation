@@ -9,10 +9,19 @@
   .belief-bar .fill { background: #6c8ebf; height: 1rem; }
   .belief-bar .label { width: 12rem; }
   button { margin-right: 0.5rem; }
+  .disclosure { color: #555; font-size: 0.9rem; }
 </style>
 </head>
 <body>
 <h1>Follow-up policy sandbox</h1>
+<p class="disclosure">
+  Detection sensitivity/specificity are real numbers from the proposal's
+  bibliography; the transition hazards and reward values behind this
+  policy are illustrative placeholders, not sourced from PREDICT or the
+  literature. This demo also covers a 6-period horizon (3 years, 6-month
+  steps), reduced from the proposal's stated 10-period design because the
+  exact solver becomes intractable at that length.
+</p>
 
 <label>Risk stratum:
   <select id="risk">

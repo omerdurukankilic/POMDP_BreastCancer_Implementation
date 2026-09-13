@@ -17,8 +17,19 @@ the claim honest, plus an interactive sandbox for exploring the result.
 - A script that solves both strata and prints the visit-count/switch-point
   comparison described in the proposal's Data and Parameterization section.
 - A static, self-contained HTML sandbox: pick a stratum, toggle between
-  auto-simulated and manually-driven observations, step through the 10
+  auto-simulated and manually-driven observations, step through the
   visits, watch the belief and recommended action update.
+
+**Note on horizon length:** the proposal describes the model over 10
+decision points (5 years, 6-month steps). The built demo solves and
+steps through a 6-period horizon instead. This was discovered during
+implementation: once the reward model has genuine decision-relevant
+structure (`DETECTION_BENEFIT` making screening actually valuable), the
+exact alpha-vector solver's pruned vector set grows combinatorially with
+horizon length, and horizon=10 is no longer tractable in demo timeframes.
+This is a deliberate, disclosed scope reduction for the demo, not a claim
+that the proposal's 10-period design is wrong. See `scripts/run_demo.py`'s
+`HORIZON` constant.
 
 **Out of scope (not this round):**
 - Real PREDICT integration or any patient-level data — none is needed; the
@@ -67,8 +78,10 @@ Builds two `POMDP` instances — low-risk and high-risk stratum — with:
 
 Builds both strata, solves each, prints the same comparison the proposal's
 prose describes (how many `Intensive`/`Standard` visits each stratum's
-policy prescribes across the 10 decision points, and where the switch point
-falls, if any). Exports the solved alpha-vectors and matrices as JSON,
+policy prescribes across the demo's decision points, and where the switch
+point falls, if any). As noted under Scope above, the demo actually solves
+a 6-period horizon rather than the proposal's 10, for solver tractability.
+Exports the solved alpha-vectors and matrices as JSON,
 embedded directly into the sandbox HTML file — no separate fetch, no CORS
 issues, works as a plain static file.
 
