@@ -29,6 +29,9 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Repo root on sys.path so tests can import the top-level `scripts` package
+# (it isn't installed like `pomdp_breast_cancer` under src/).
+pythonpath = ["."]
 addopts = "-ra --strict-markers --strict-config"
 filterwarnings = ["error"]
 
