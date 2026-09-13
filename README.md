@@ -57,6 +57,9 @@ uv run pytest
 
 ## Demo
 
+The interactive sandbox is live at
+[omerdurukankilic.github.io/POMDP_BreastCancer_Implementation](https://omerdurukankilic.github.io/POMDP_BreastCancer_Implementation/).
+
 Solve both risk strata and print the comparison:
 
 ```bash
