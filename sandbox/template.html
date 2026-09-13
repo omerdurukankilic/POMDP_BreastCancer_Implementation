@@ -1,7 +1,137 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8" /><title>POMDP follow-up sandbox</title></head>
+<head>
+<meta charset="utf-8" />
+<title>POMDP follow-up sandbox</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  .belief-bar { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; }
+  .belief-bar .fill { background: #6c8ebf; height: 1rem; }
+  .belief-bar .label { width: 12rem; }
+  button { margin-right: 0.5rem; }
+</style>
+</head>
 <body>
-<script>const DATA = __POMDP_DATA__;</script>
+<h1>Follow-up policy sandbox</h1>
+
+<label>Risk stratum:
+  <select id="risk">
+    <option value="low">Low</option>
+    <option value="high">High</option>
+  </select>
+</label>
+<br /><br />
+<label>
+  <input type="checkbox" id="auto" checked />
+  Auto-simulate observations
+</label>
+
+<p id="status"></p>
+<div id="belief"></div>
+<div id="controls">
+  <button id="next">Next visit</button>
+  <button id="pick-negative" style="display:none">Observed: negative</button>
+  <button id="pick-positive" style="display:none">Observed: positive</button>
+</div>
+
+<script>
+const DATA = __POMDP_DATA__;
+let state = null;
+
+function dot(a, b) {
+  return a.reduce((sum, v, i) => sum + v * b[i], 0);
+}
+
+function bestAction(stageVectors, belief) {
+  let best = stageVectors[0];
+  let bestValue = dot(best.values, belief);
+  for (const vector of stageVectors) {
+    const value = dot(vector.values, belief);
+    if (value > bestValue) {
+      best = vector;
+      bestValue = value;
+    }
+  }
+  return best.action;
+}
+
+function predictedStateDistribution(strata, actionIdx, belief) {
+  return strata.states.map((_, sPrime) =>
+    belief.reduce((sum, b, s) => sum + b * strata.transition[actionIdx][s][sPrime], 0)
+  );
+}
+
+function updateBelief(strata, actionIdx, obsIdx, belief) {
+  const predicted = predictedStateDistribution(strata, actionIdx, belief);
+  const unnormalized = predicted.map((p, sPrime) => p * strata.observation[actionIdx][sPrime][obsIdx]);
+  const total = unnormalized.reduce((a, b) => a + b, 0);
+  return unnormalized.map((v) => v / total);
+}
+
+function renderBelief(belief, states) {
+  const container = document.getElementById("belief");
+  container.innerHTML = "";
+  states.forEach((name, i) => {
+    const row = document.createElement("div");
+    row.className = "belief-bar";
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = name;
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = `${Math.round(belief[i] * 200)}px`;
+    row.append(label, fill);
+    container.appendChild(row);
+  });
+}
+
+function startStratum() {
+  const risk = document.getElementById("risk").value;
+  const strata = DATA[risk];
+  state = {
+    strata,
+    belief: DATA.initial_belief.slice(),
+    periodsRemaining: strata.stages.length - 1,
+  };
+  renderBelief(state.belief, strata.states);
+  document.getElementById("status").textContent = `${state.periodsRemaining} visits remaining`;
+}
+
+function step(obsIdx) {
+  const { strata, belief, periodsRemaining } = state;
+  if (periodsRemaining <= 0) return;
+
+  const stageVectors = strata.stages[periodsRemaining];
+  const actionIdx = bestAction(stageVectors, belief);
+  const actionName = strata.actions[actionIdx];
+
+  if (obsIdx === undefined) {
+    const predicted = predictedStateDistribution(strata, actionIdx, belief);
+    const obsProbs = strata.observations.map((_, o) =>
+      predicted.reduce((sum, p, sPrime) => sum + p * strata.observation[actionIdx][sPrime][o], 0)
+    );
+    obsIdx = Math.random() < obsProbs[1] ? 1 : 0;
+  }
+
+  state.belief = updateBelief(strata, actionIdx, obsIdx, belief);
+  state.periodsRemaining -= 1;
+  renderBelief(state.belief, strata.states);
+  document.getElementById("status").textContent =
+    `visit action: ${actionName}, observed: ${strata.observations[obsIdx]}, ${state.periodsRemaining} visits remaining`;
+}
+
+document.getElementById("risk").addEventListener("change", startStratum);
+document.getElementById("auto").addEventListener("change", () => {
+  const manual = !document.getElementById("auto").checked;
+  document.getElementById("pick-negative").style.display = manual ? "inline" : "none";
+  document.getElementById("pick-positive").style.display = manual ? "inline" : "none";
+  document.getElementById("next").style.display = manual ? "none" : "inline";
+});
+document.getElementById("next").addEventListener("click", () => step());
+document.getElementById("pick-negative").addEventListener("click", () => step(0));
+document.getElementById("pick-positive").addEventListener("click", () => step(1));
+
+startStratum();
+</script>
 </body>
 </html>
