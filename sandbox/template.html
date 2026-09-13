@@ -65,6 +65,9 @@ function updateBelief(strata, actionIdx, obsIdx, belief) {
   const predicted = predictedStateDistribution(strata, actionIdx, belief);
   const unnormalized = predicted.map((p, sPrime) => p * strata.observation[actionIdx][sPrime][obsIdx]);
   const total = unnormalized.reduce((a, b) => a + b, 0);
+  if (total <= 0) {
+    throw new Error("observation has zero probability under the predicted belief");
+  }
   return unnormalized.map((v) => v / total);
 }
 
@@ -113,7 +116,12 @@ function step(obsIdx) {
     obsIdx = Math.random() < obsProbs[1] ? 1 : 0;
   }
 
-  state.belief = updateBelief(strata, actionIdx, obsIdx, belief);
+  try {
+    state.belief = updateBelief(strata, actionIdx, obsIdx, belief);
+  } catch (err) {
+    document.getElementById("status").textContent = `Error: ${err.message}`;
+    return;
+  }
   state.periodsRemaining -= 1;
   renderBelief(state.belief, strata.states);
   document.getElementById("status").textContent =
