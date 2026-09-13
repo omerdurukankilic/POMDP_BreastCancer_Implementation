@@ -97,7 +97,10 @@ def export_data(strata_results: dict[str, tuple[POMDP, list[list[AlphaVector]]]]
 
 def write_sandbox(data: dict) -> None:
     template = TEMPLATE_PATH.read_text()
-    rendered = template.replace("__POMDP_DATA__", json.dumps(data))
+    # Escape `<` so a stray "</script>" in the payload can't break out of the
+    # script tag it's embedded in; harmless no-op for today's hardcoded data.
+    payload = json.dumps(data).replace("<", "\\u003c")
+    rendered = template.replace("__POMDP_DATA__", payload)
     OUTPUT_PATH.write_text(rendered)
 
 
