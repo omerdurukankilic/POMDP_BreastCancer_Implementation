@@ -58,6 +58,14 @@ def build_observation_matrix() -> np.ndarray:
 STATE_QUALITY = np.array([1.0, 0.8, 0.5, 0.0])
 ACTION_COST = np.array([0.0, 0.01, 0.03])
 
+# Illustrative placeholder, not sourced from any literature: the QALY-ish
+# value of actually catching a recurrence at this visit. R(s, a) is an
+# expectation over what the visit's observation reveals, so when a
+# recurrence is present the sensitivity-weighted chance of detecting it
+# belongs in the reward alongside the visit's cost — without it, screening
+# has no benefit to offset ACTION_COST and `defer` dominates everywhere.
+DETECTION_BENEFIT = 0.3
+
 # Illustrative placeholders for annual transition hazards. Risk strata differ
 # only in how fast disease progresses; the background non-cancer death rate
 # is shared across strata.
@@ -102,7 +110,8 @@ def _transition_matrix(
 
 
 def build_reward_matrix() -> np.ndarray:
-    """Build R(s, a): a state's quality minus the chosen action's cost.
+    """Build R(s, a): a state's quality minus the chosen action's cost, plus
+    the expected benefit of detecting a recurrence that's actually present.
 
     STATE_QUALITY is broadcast across actions (rows) and ACTION_COST across
     states (columns), giving the (n_actions, n_states) shape POMDP expects.
@@ -111,6 +120,15 @@ def build_reward_matrix() -> np.ndarray:
     # Death carries no ongoing quality-of-life or cost — zero it explicitly
     # rather than let it inherit STATE_QUALITY's placeholder 0.0 by accident.
     reward[:, STATES.index("death_other")] = 0.0
+
+    # In a recurrence state, R(s, a) as an expectation over Z(o|s,a) picks up
+    # a sensitivity-weighted DETECTION_BENEFIT term: a more sensitive action
+    # is more likely to actually catch the recurrence this visit.
+    sensitivities = {"defer": DEFER_SENS, "standard": STANDARD_SENS, "intensive": INTENSIVE_SENS}
+    for a_idx, action in enumerate(ACTIONS):
+        for state in ("loco_regional", "distant"):
+            reward[a_idx, STATES.index(state)] += DETECTION_BENEFIT * sensitivities[action]
+
     return reward
 
 

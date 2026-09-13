@@ -15,7 +15,13 @@ from pomdp_breast_cancer.parameters import build_pomdp
 from pomdp_breast_cancer.pomdp import POMDP
 from pomdp_breast_cancer.solver import AlphaVector, solve
 
-HORIZON = 10
+# Reduced from the proposal's 10-period design: once the reward model
+# gives screening genuine value (see parameters.DETECTION_BENEFIT), the
+# exact alpha-vector solver's pruned vector count grows combinatorially
+# with horizon length, and horizon=10 is no longer tractable in demo
+# timeframes. This is a deliberate, documented scope reduction for the
+# demo, not a claim about the proposal's own horizon.
+HORIZON = 6
 # Starting belief: mostly disease-free, with small mass on recurrence/death
 # states to keep every observation reachable during the walk-forward below.
 INITIAL_BELIEF = np.array([0.95, 0.03, 0.01, 0.01])
@@ -54,20 +60,22 @@ def summarize(risk: str, pomdp: POMDP, trace: list[tuple[str, str]]) -> None:
     actions_taken = [action for action, _ in trace]
     standard_count = actions_taken.count("standard")
     intensive_count = actions_taken.count("intensive")
-    switch_visit = next(
-        (i + 1 for i, action in enumerate(actions_taken) if action == "intensive"), None
+    switch_visit, switch_action = next(
+        ((i + 1, action) for i, action in enumerate(actions_taken) if action != "defer"),
+        (None, None),
     )
     print(f"{risk} risk: {standard_count} standard visits, {intensive_count} intensive visits")
     if switch_visit:
-        print(f"  switches to intensive at visit {switch_visit}")
+        print(f"  switches to {switch_action} at visit {switch_visit}")
     else:
-        print("  never switches to intensive")
+        print("  never leaves defer")
 
 
 def main() -> None:
     print("Note: transition hazards and rewards are illustrative placeholders,")
     print("not sourced from PREDICT or the literature; only the detection")
     print("sensitivities/specificities are real. See parameters.py.\n")
+    print("Solving both strata (this can take up to ~30 seconds)...\n")
     for risk in ("low", "high"):
         pomdp = build_pomdp(risk)
         stages = solve(pomdp, HORIZON)
