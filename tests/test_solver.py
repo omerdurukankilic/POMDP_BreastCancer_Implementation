@@ -35,6 +35,31 @@ def test_solve_picks_the_better_action_when_state_never_changes():
     assert best.values == pytest.approx([5.0])
 
 
+def test_prune_removes_a_vector_with_no_witness_belief():
+    from pomdp_breast_cancer.solver import AlphaVector, _prune
+
+    dominated = AlphaVector(np.array([1.0, 1.0]), action_idx=0)
+    dominator = AlphaVector(np.array([2.0, 2.0]), action_idx=1)
+
+    kept = _prune([dominated, dominator], n_states=2)
+
+    assert len(kept) == 1
+    assert kept[0].action_idx == 1
+
+
+def test_prune_keeps_two_vectors_that_cross():
+    from pomdp_breast_cancer.solver import AlphaVector, _prune
+
+    # crosses at b = [0.5, 0.5]: both vectors give value 1.5 there, but
+    # each wins on one side of that point, so both are useful.
+    left_winner = AlphaVector(np.array([2.0, 1.0]), action_idx=0)
+    right_winner = AlphaVector(np.array([1.0, 2.0]), action_idx=1)
+
+    kept = _prune([left_winner, right_winner], n_states=2)
+
+    assert len(kept) == 2
+
+
 def test_backup_produces_one_candidate_per_action_choice_combination():
     from pomdp_breast_cancer.solver import AlphaVector, _backup
 
