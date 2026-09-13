@@ -75,7 +75,7 @@ def main() -> None:
     print("Note: transition hazards and rewards are illustrative placeholders,")
     print("not sourced from PREDICT or the literature; only the detection")
     print("sensitivities/specificities are real. See parameters.py.\n")
-    print("Solving both strata (this can take up to ~30 seconds)...\n")
+    print("Solving both strata (this can take under a minute)...\n")
     for risk in ("low", "high"):
         pomdp = build_pomdp(risk)
         stages = solve(pomdp, HORIZON)
