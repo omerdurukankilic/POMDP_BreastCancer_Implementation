@@ -11,7 +11,7 @@ test-watch:
 	uv run ptw --now --clear
 
 lint:
-	uv run ruff check src tests
+	uv run ruff check src tests scripts
 
 coverage:
-	uv run pytest --cov=pomdp_breast_cancer --cov-report=term-missing
+	uv run pytest --cov=pomdp_breast_cancer --cov=scripts --cov-report=term-missing

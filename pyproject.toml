@@ -36,7 +36,7 @@ addopts = "-ra --strict-markers --strict-config"
 filterwarnings = ["error"]
 
 [tool.coverage.run]
-source = ["pomdp_breast_cancer"]
+source = ["pomdp_breast_cancer", "scripts"]
 branch = true
 
 [tool.coverage.report]

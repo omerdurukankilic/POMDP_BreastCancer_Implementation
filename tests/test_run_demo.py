@@ -1,7 +1,14 @@
 import json
 
 import pytest
-from scripts.run_demo import HORIZON, INITIAL_BELIEF, export_data, most_likely_trajectory
+from scripts.run_demo import (
+    HORIZON,
+    INITIAL_BELIEF,
+    export_data,
+    most_likely_trajectory,
+    summarize,
+    write_sandbox,
+)
 
 from pomdp_breast_cancer.parameters import build_pomdp
 from pomdp_breast_cancer.solver import solve
@@ -71,3 +78,34 @@ def test_export_data_is_json_serializable_and_has_expected_shape(low_solution, h
     assert set(reloaded.keys()) == {"low", "high"}
     assert reloaded["low"]["states"] == ["disease_free", "loco_regional", "distant", "death_other"]
     assert len(reloaded["low"]["stages"]) == HORIZON + 1
+
+
+def test_summarize_reports_visit_counts_and_switch_point(capsys):
+    trace = [("defer", "negative"), ("standard", "positive"), ("intensive", "positive")]
+    summarize("high", trace)
+    output = capsys.readouterr().out
+    assert "high risk: 1 standard visits, 1 intensive visits" in output
+    assert "switches to standard at visit 2" in output
+
+
+def test_summarize_reports_never_leaves_defer(capsys):
+    trace = [("defer", "negative"), ("defer", "negative")]
+    summarize("low", trace)
+    output = capsys.readouterr().out
+    assert "never leaves defer" in output
+
+
+def test_write_sandbox_substitutes_payload_and_escapes_script_tags(tmp_path, monkeypatch):
+    template_path = tmp_path / "template.html"
+    output_path = tmp_path / "index.html"
+    template_path.write_text("<html>__POMDP_DATA__</html>")
+    monkeypatch.setattr("scripts.run_demo.TEMPLATE_PATH", template_path)
+    monkeypatch.setattr("scripts.run_demo.OUTPUT_PATH", output_path)
+
+    data = {"note": "</script><script>alert(1)</script>"}
+    write_sandbox(data)
+
+    rendered = output_path.read_text()
+    expected_payload = json.dumps(data).replace("<", "\\u003c")
+    assert rendered == f"<html>{expected_payload}</html>"
+    assert "</script>" not in expected_payload

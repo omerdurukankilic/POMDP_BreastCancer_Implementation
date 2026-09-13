@@ -62,7 +62,7 @@ def most_likely_trajectory(
     return trace
 
 
-def summarize(risk: str, pomdp: POMDP, trace: list[tuple[str, str]]) -> None:
+def summarize(risk: str, trace: list[tuple[str, str]]) -> None:
     actions_taken = [action for action, _ in trace]
     standard_count = actions_taken.count("standard")
     intensive_count = actions_taken.count("intensive")
@@ -114,7 +114,7 @@ def main() -> None:
         pomdp = build_pomdp(risk)
         stages = solve(pomdp, HORIZON)
         trace = most_likely_trajectory(pomdp, stages, INITIAL_BELIEF)
-        summarize(risk, pomdp, trace)
+        summarize(risk, trace)
         strata_results[risk] = (pomdp, stages)
 
     data = export_data(strata_results)

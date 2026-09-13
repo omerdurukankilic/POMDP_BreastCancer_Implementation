@@ -17,5 +17,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --extra dev
-      - run: uv run ruff check src tests
-      - run: uv run pytest --cov=pomdp_breast_cancer
+      - run: uv run ruff check src tests scripts
+      - run: uv run pytest --cov=pomdp_breast_cancer --cov=scripts
