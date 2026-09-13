@@ -91,3 +91,49 @@ def test_backup_produces_one_candidate_per_action_choice_combination():
     for candidate in candidates:
         expected = pomdp.reward[candidate.action_idx]
         assert candidate.values == pytest.approx(expected)
+
+
+def _direct_value(pomdp: POMDP, belief: np.ndarray, n: int) -> float:
+    if n == 0:
+        return 0.0
+    best = -np.inf
+    for a in range(len(pomdp.actions)):
+        total = float(belief @ pomdp.reward[a])
+        predicted = belief @ pomdp.transition[a]
+        for o in range(len(pomdp.observations)):
+            likelihood = pomdp.observation[a, :, o]
+            unnormalized = predicted * likelihood
+            p_o = unnormalized.sum()
+            if p_o > 1e-12:
+                next_belief = unnormalized / p_o
+                total += pomdp.discount * p_o * _direct_value(pomdp, next_belief, n - 1)
+        best = max(best, total)
+    return best
+
+
+def test_solver_matches_direct_recursive_value_at_several_beliefs():
+    pomdp = POMDP(
+        states=["healthy", "disease"],
+        actions=["wait", "screen"],
+        observations=["negative", "positive"],
+        transition=np.array(
+            [
+                [[0.95, 0.05], [0.0, 1.0]],
+                [[0.95, 0.05], [0.0, 1.0]],
+            ]
+        ),
+        observation=np.array(
+            [
+                [[0.9, 0.1], [0.4, 0.6]],
+                [[0.99, 0.01], [0.05, 0.95]],
+            ]
+        ),
+        reward=np.array([[0.0, -10.0], [-1.0, -1.0]]),
+        discount=0.9,
+    )
+    stages = solve(pomdp, horizon=2)
+
+    for belief in [np.array([1.0, 0.0]), np.array([0.5, 0.5]), np.array([0.2, 0.8])]:
+        for n in (1, 2):
+            solver_value = max(v.values @ belief for v in stages[n])
+            assert solver_value == pytest.approx(_direct_value(pomdp, belief, n), abs=1e-6)
