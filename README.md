@@ -73,11 +73,25 @@ committed, generated file and will otherwise silently drift out of date.
 ## Status
 
 Formulation, exact solving, and parameterization (two illustrative risk
-strata) are implemented and tested. See
-`docs/superpowers/specs/2026-09-13-pomdp-solver-demo-design.md` for what's
-illustrative versus literature-sourced, and what's intentionally out of
-scope for now (real PREDICT integration, more than two strata, robust-POMDP
-methods, live in-browser re-solving).
+strata) are implemented and tested. The demo differs from the proposal's
+design in a few disclosed ways:
+
+- Solves a 6-period horizon instead of the proposal's 10-period (5-year,
+  6-month-step) design, since the exact solver's pruned vector set becomes
+  intractable at 10 periods once the reward has real decision-relevant
+  structure.
+- Adds a detection-benefit term to the reward, scaled by the acting
+  action's sensitivity, so that catching a recurrence actually outweighs
+  a screening visit's cost.
+- Uses two illustrative risk strata (low, high) rather than the full set
+  PREDICT would distinguish.
+- Parameterizes transition hazards and reward values with illustrative
+  placeholders rather than numbers drawn from PREDICT or a real
+  health-economic costing; only the detection sensitivities and
+  specificities are literature-sourced (see `parameters.py`).
+
+Real PREDICT integration, more than two strata, robust-POMDP methods, and
+live in-browser re-solving are intentionally out of scope for now.
 
 ## License
 

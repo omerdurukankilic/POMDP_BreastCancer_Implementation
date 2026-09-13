@@ -38,3 +38,7 @@ htmlcov/
 
 # Brainstorming visual companion
 .superpowers/
+
+# Claude Code local worktrees/config, and session working notes
+.claude/
+docs/superpowers/
