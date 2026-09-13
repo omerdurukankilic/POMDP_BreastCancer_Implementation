@@ -68,11 +68,22 @@ Builds two `POMDP` instances — low-risk and high-risk stratum — with:
 - **Observation probabilities (Z)**: taken directly from the proposal's own
   verified Table 1 (Robertson et al. for `Intensive`, Kramer/Barton for
   `Standard`, Elmore/Otten for `Defer`).
-- **Transition probabilities (T)**: illustrative hazard rates, not sourced
-  from a specific citation. See "Data honesty" below.
-- **Reward (R)**: an illustrative QALY-shaped cost structure — visits cost
-  more the more intensive they are, undetected progression costs more the
-  further it goes. Also illustrative, not literature-derived.
+- **Transition probabilities (T)**: illustrative hazard rates
+  (`LOW_RISK`, `HIGH_RISK` in `parameters.py`), not sourced from a specific
+  citation. See "Data honesty" below.
+- **Reward (R)**: an illustrative QALY-shaped structure, three parts, none
+  literature-derived: a per-state quality score (`STATE_QUALITY`, highest
+  for disease-free, zero for death), a per-action cost (`ACTION_COST`,
+  zero for defer, highest for intensive), and a detection-benefit term
+  (`DETECTION_BENEFIT`) added in the two recurrence states, scaled by that
+  action's sensitivity. The detection-benefit term was not in the original
+  design; it was added after solving the model with just quality-minus-cost
+  and finding `defer` won at every belief state, because nothing in that
+  version ever rewarded actually catching a recurrence. This term is the
+  concrete form of the proposal's own sentence describing the reward
+  mechanism ("combining the benefit of detecting a recurrence early against
+  the... cost and burden of the visit itself" — proposal §3.1), which the
+  proposal states but does not give numbers for.
 
 ### `scripts/run_demo.py` (new)
 
@@ -107,12 +118,26 @@ Python at runtime.
 
 This matters enough to state plainly, since it's the same standard the
 proposal's own citations were held to all session: the detection
-probabilities are real, verified numbers from the proposal's bibliography.
-The transition probabilities and reward values are not — they're plausible,
-clearly-labeled placeholders standing in for what a real PREDICT query and
-a real health-economic costing would supply. Code and output should say so
-directly (a docstring or a printed note in the demo script), not imply a
-sourcing that isn't there.
+probabilities are real, verified numbers from the proposal's bibliography
+(Table 1's sensitivity/specificity figures, midpointed where a range was
+reported). The transition probabilities and reward values are not — they're
+plausible, clearly-labeled placeholders standing in for what a real PREDICT
+query and a real health-economic costing would supply. Code and output
+should say so directly (a docstring or a printed note in the demo script),
+not imply a sourcing that isn't there.
+
+Two further deviations from the proposal's own description, both
+discovered during implementation rather than planned upfront, are worth
+naming explicitly rather than leaving implicit in code comments:
+
+- The demo solves a 6-period horizon, not the proposal's 10 (see "Note on
+  horizon length" under Scope above).
+- The reward function includes a `DETECTION_BENEFIT` term not spelled out
+  anywhere in the proposal's text, added specifically to keep `defer` from
+  dominating every belief state once the reward otherwise had real
+  structure (see the `parameters.py` component section above). It gives
+  concrete numeric form to the proposal's reward-mechanism sentence; it
+  is not itself something the proposal specifies.
 
 ## Error handling
 
