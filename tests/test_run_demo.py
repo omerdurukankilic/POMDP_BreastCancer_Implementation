@@ -1,5 +1,7 @@
+import json
+
 import pytest
-from scripts.run_demo import HORIZON, INITIAL_BELIEF, most_likely_trajectory
+from scripts.run_demo import HORIZON, INITIAL_BELIEF, export_data, most_likely_trajectory
 
 from pomdp_breast_cancer.parameters import build_pomdp
 from pomdp_breast_cancer.solver import solve
@@ -57,3 +59,15 @@ def test_high_risk_screens_at_some_point(high_solution):
 def test_trajectory_has_one_entry_per_period(low_solution):
     _, _, low_trace = low_solution
     assert len(low_trace) == HORIZON
+
+
+def test_export_data_is_json_serializable_and_has_expected_shape(low_solution, high_solution):
+    low_pomdp, low_stages, _ = low_solution
+    high_pomdp, high_stages, _ = high_solution
+    data = export_data({"low": (low_pomdp, low_stages), "high": (high_pomdp, high_stages)})
+
+    serialized = json.dumps(data)
+    reloaded = json.loads(serialized)
+    assert set(reloaded.keys()) == {"low", "high"}
+    assert reloaded["low"]["states"] == ["disease_free", "loco_regional", "distant", "death_other"]
+    assert len(reloaded["low"]["stages"]) == HORIZON + 1

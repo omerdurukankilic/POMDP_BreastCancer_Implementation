@@ -9,11 +9,17 @@ model's mechanics, not as a clinical recommendation.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 
 from pomdp_breast_cancer.parameters import build_pomdp
 from pomdp_breast_cancer.pomdp import POMDP
 from pomdp_breast_cancer.solver import AlphaVector, solve
+
+TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "sandbox" / "template.html"
+OUTPUT_PATH = Path(__file__).resolve().parent.parent / "sandbox" / "index.html"
 
 # Reduced from the proposal's 10-period design: once the reward model
 # gives screening genuine value (see parameters.DETECTION_BENEFIT), the
@@ -71,16 +77,47 @@ def summarize(risk: str, pomdp: POMDP, trace: list[tuple[str, str]]) -> None:
         print("  never leaves defer")
 
 
+def export_data(strata_results: dict[str, tuple[POMDP, list[list[AlphaVector]]]]) -> dict:
+    """Package each stratum's solved policy into plain JSON-friendly types for the sandbox."""
+    data = {}
+    for risk, (pomdp, stages) in strata_results.items():
+        data[risk] = {
+            "states": pomdp.states,
+            "actions": pomdp.actions,
+            "observations": pomdp.observations,
+            "transition": pomdp.transition.tolist(),
+            "observation": pomdp.observation.tolist(),
+            "stages": [
+                [{"values": v.values.tolist(), "action": v.action_idx} for v in stage]
+                for stage in stages
+            ],
+        }
+    return data
+
+
+def write_sandbox(data: dict) -> None:
+    template = TEMPLATE_PATH.read_text()
+    rendered = template.replace("__POMDP_DATA__", json.dumps(data))
+    OUTPUT_PATH.write_text(rendered)
+
+
 def main() -> None:
     print("Note: transition hazards and rewards are illustrative placeholders,")
     print("not sourced from PREDICT or the literature; only the detection")
     print("sensitivities/specificities are real. See parameters.py.\n")
     print("Solving both strata (this can take under a minute)...\n")
+    strata_results = {}
     for risk in ("low", "high"):
         pomdp = build_pomdp(risk)
         stages = solve(pomdp, HORIZON)
         trace = most_likely_trajectory(pomdp, stages, INITIAL_BELIEF)
         summarize(risk, pomdp, trace)
+        strata_results[risk] = (pomdp, stages)
+
+    data = export_data(strata_results)
+    data["initial_belief"] = INITIAL_BELIEF.tolist()
+    write_sandbox(data)
+    print(f"\nwrote {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":
