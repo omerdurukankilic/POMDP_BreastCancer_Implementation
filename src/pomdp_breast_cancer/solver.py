@@ -59,7 +59,10 @@ def _has_witness_belief(candidate: AlphaVector, rivals: list[AlphaVector], n_sta
     a_eq = [np.concatenate([np.ones(n_states), [0.0]])]
     bounds = [(0.0, 1.0)] * n_states + [(None, None)]
     result = linprog(objective, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=[1.0], bounds=bounds)
-    return bool(result.success and -result.fun > 1e-9)
+    if not result.success:
+        raise RuntimeError(f"LP failed while checking alpha-vector dominance: {result.message}")
+    # numerical tolerance: treat a margin this close to zero as no real advantage
+    return -result.fun > 1e-9
 
 
 def _prune(vectors: list[AlphaVector], n_states: int) -> list[AlphaVector]:
