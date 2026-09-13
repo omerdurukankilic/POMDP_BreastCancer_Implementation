@@ -1,15 +1,17 @@
-"""States, actions, observations, and the observation (detection) matrix.
+"""States, actions, observations, and the transition/observation/reward matrices.
 
-The detection numbers here (sensitivity/specificity) come from the proposal's
-own verified Table 1. Transition and reward numbers are a separate, later
-concern (illustrative placeholders) — see the design spec's "Data honesty"
-section. Don't blur the two: this module only builds the real, sourced Z
-matrix.
+The detection numbers (sensitivity/specificity) come from the proposal's own
+verified Table 1 — see `build_observation_matrix`. The transition hazard
+rates (`LOW_RISK`, `HIGH_RISK`) and reward values (`STATE_QUALITY`,
+`ACTION_COST`) below are illustrative placeholders, not sourced from any
+citation — see the design spec's "Data honesty" section. Don't blur the two.
 """
 
 from __future__ import annotations
 
 import numpy as np
+
+from pomdp_breast_cancer.pomdp import POMDP
 
 STATES = ["disease_free", "loco_regional", "distant", "death_other"]
 ACTIONS = ["defer", "standard", "intensive"]
@@ -48,4 +50,69 @@ def build_observation_matrix() -> np.ndarray:
             _detection_row(STANDARD_SENS, STANDARD_SPEC),
             _detection_row(INTENSIVE_SENS, INTENSIVE_SPEC),
         ]
+    )
+
+
+# Illustrative placeholders (not sourced from PREDICT or any literature): a
+# state's "quality" and each action's cost, combined below into R(s, a).
+STATE_QUALITY = np.array([1.0, 0.8, 0.5, 0.0])
+ACTION_COST = np.array([0.0, 0.01, 0.03])
+
+# Illustrative placeholders for annual transition hazards. Risk strata differ
+# only in how fast disease progresses; the background non-cancer death rate
+# is shared across strata.
+BACKGROUND_DEATH_RATE = 0.002
+LOW_RISK = {"to_loco_regional": 0.01, "to_distant": 0.005, "loco_to_distant": 0.05}
+HIGH_RISK = {"to_loco_regional": 0.03, "to_distant": 0.015, "loco_to_distant": 0.10}
+
+
+def _transition_matrix(
+    to_loco_regional: float, to_distant: float, loco_to_distant: float
+) -> np.ndarray:
+    """Build T(s'|s), the same for every action, given a risk stratum's hazards."""
+    t = np.zeros((len(STATES), len(STATES)))
+    disease_free, loco_regional, distant, death_other = range(len(STATES))
+
+    t[disease_free, disease_free] = 1 - to_loco_regional - to_distant - BACKGROUND_DEATH_RATE
+    t[disease_free, loco_regional] = to_loco_regional
+    t[disease_free, distant] = to_distant
+    t[disease_free, death_other] = BACKGROUND_DEATH_RATE
+
+    t[loco_regional, loco_regional] = 1 - loco_to_distant - BACKGROUND_DEATH_RATE
+    t[loco_regional, distant] = loco_to_distant
+    t[loco_regional, death_other] = BACKGROUND_DEATH_RATE
+
+    t[distant, distant] = 1 - BACKGROUND_DEATH_RATE
+    t[distant, death_other] = BACKGROUND_DEATH_RATE
+
+    # death_other is absorbing.
+    t[death_other, death_other] = 1.0
+    return t
+
+
+def build_reward_matrix() -> np.ndarray:
+    """Build R(s, a): a state's quality minus the chosen action's cost."""
+    reward = STATE_QUALITY[np.newaxis, :] - ACTION_COST[:, np.newaxis]
+    reward[:, STATES.index("death_other")] = 0.0
+    return reward
+
+
+def build_pomdp(risk: str) -> POMDP:
+    """Assemble the full POMDP for a risk stratum ("low" or "high")."""
+    hazards = {"low": LOW_RISK, "high": HIGH_RISK}.get(risk)
+    if hazards is None:
+        raise ValueError(f"unknown risk stratum: {risk!r}")
+
+    # Transition doesn't depend on the action taken, so tile it across actions.
+    single_stage_transition = _transition_matrix(**hazards)
+    transition = np.tile(single_stage_transition, (len(ACTIONS), 1, 1))
+
+    return POMDP(
+        states=STATES,
+        actions=ACTIONS,
+        observations=OBSERVATIONS,
+        transition=transition,
+        observation=build_observation_matrix(),
+        reward=build_reward_matrix(),
+        discount=0.95,
     )
