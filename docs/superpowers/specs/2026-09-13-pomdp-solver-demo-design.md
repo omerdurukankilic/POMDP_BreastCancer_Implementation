@@ -98,14 +98,19 @@ issues, works as a plain static file.
 
 ### `sandbox/index.html` (new)
 
-A single self-contained page. Its JavaScript reimplements exactly two small
-pure functions already covered by Python tests — the belief update and
-"which alpha-vector wins at this belief" — nothing else. The solver itself
-never runs in the browser.
-
-UI: stratum picker, auto/manual toggle, a "next visit" control, a belief
-display, the recommended action, and (in manual mode) two buttons to pick
-the observation yourself.
+A self-contained page with two screens: a setup screen (stratum and
+observation-mode choice, plus the data-honesty disclosure) and a simulation
+screen (belief, recommended action, an expandable "why this action?"
+breakdown, a always-visible previous-actions strip, and a step control).
+Its JavaScript reimplements three small pure functions, not two as
+originally scoped: the belief update and "which alpha-vector wins at this
+belief" (both already covered by Python tests), plus a client-side
+Bellman backup, `Q(b,a) = R(a).b + discount * sum_o P(o|b,a) * V_{n-1}(b^{a,o})`,
+added to power the "why this action?" panel. This still isn't re-solving;
+it evaluates the already-solved continuation value function (the previous
+stage's pruned alpha-vectors) one step forward for each action, which is
+exact regardless of whether that action's own vector survived pruning at
+the current stage. The solver itself never runs in the browser.
 
 ## Data flow
 
@@ -124,7 +129,10 @@ reported). The transition probabilities and reward values are not — they're
 plausible, clearly-labeled placeholders standing in for what a real PREDICT
 query and a real health-economic costing would supply. Code and output
 should say so directly (a docstring or a printed note in the demo script),
-not imply a sourcing that isn't there.
+not imply a sourcing that isn't there. The sandbox UI itself dropped its
+own copy of this disclosure during the UI redesign; the requirement is
+still met by `parameters.py`'s docstrings and the note `run_demo.py`
+prints each time it solves and regenerates the sandbox.
 
 Two further deviations from the proposal's own description, both
 discovered during implementation rather than planned upfront, are worth

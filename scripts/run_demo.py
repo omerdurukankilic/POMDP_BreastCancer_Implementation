@@ -87,6 +87,8 @@ def export_data(strata_results: dict[str, tuple[POMDP, list[list[AlphaVector]]]]
             "observations": pomdp.observations,
             "transition": pomdp.transition.tolist(),
             "observation": pomdp.observation.tolist(),
+            "reward": pomdp.reward.tolist(),
+            "discount": pomdp.discount,
             "stages": [
                 [{"values": v.values.tolist(), "action": v.action_idx} for v in stage]
                 for stage in stages

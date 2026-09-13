@@ -80,6 +80,17 @@ def test_export_data_is_json_serializable_and_has_expected_shape(low_solution, h
     assert len(reloaded["low"]["stages"]) == HORIZON + 1
 
 
+def test_export_data_includes_reward_and_discount_for_sandbox_q_values(low_solution):
+    # The sandbox's "why this action?" panel recomputes each action's Bellman
+    # backup client-side (R(a).b + discount * continuation value), so it
+    # needs R(s, a) and the discount factor alongside the solved vectors.
+    low_pomdp, low_stages, _ = low_solution
+    data = export_data({"low": (low_pomdp, low_stages)})
+
+    assert data["low"]["reward"] == low_pomdp.reward.tolist()
+    assert data["low"]["discount"] == low_pomdp.discount
+
+
 def test_summarize_reports_visit_counts_and_switch_point(capsys):
     trace = [("defer", "negative"), ("standard", "positive"), ("intensive", "positive")]
     summarize("high", trace)
